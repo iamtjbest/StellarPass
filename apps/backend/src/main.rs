@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post},
+    routing::get,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -55,7 +55,10 @@ async fn main() {
         .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
-    println!("Backend server listening on {}", listener.local_addr().unwrap());
+    println!(
+        "Backend server listening on {}",
+        listener.local_addr().unwrap()
+    );
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -70,11 +73,11 @@ async fn create_event(
     Json(payload): Json<CreateEventRequest>,
 ) -> impl IntoResponse {
     let mut map = state.write().await;
-    
-    // We use a UUID for off-chain metadata to keep it decoupled. 
+
+    // We use a UUID for off-chain metadata to keep it decoupled.
     // The frontend will save this UUID into the Soroban contract event string.
     let id = Uuid::new_v4().to_string();
-    
+
     let event = EventMetadata {
         id: id.clone(),
         name: payload.name,
@@ -84,16 +87,13 @@ async fn create_event(
         organizer_address: payload.organizer_address,
         blockchain_id: None,
     };
-    
+
     map.insert(id, event.clone());
-    
+
     (StatusCode::CREATED, Json(event))
 }
 
-async fn get_event(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+async fn get_event(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     let map = state.read().await;
     match map.get(&id) {
         Some(event) => (StatusCode::OK, Json(event.clone())).into_response(),
@@ -122,13 +122,13 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
-    use tower::ServiceExt;
     use http_body_util::BodyExt;
+    use tower::ServiceExt;
 
     #[tokio::test]
     async fn test_create_and_list_events() {
         let state: AppState = Arc::new(RwLock::new(HashMap::new()));
-        
+
         let app = Router::new()
             .route("/api/events", get(list_events).post(create_event))
             .route("/api/events/:id", get(get_event))
@@ -173,10 +173,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        
+
         let body = response.into_body().collect().await.unwrap().to_bytes();
         let events: Vec<EventMetadata> = serde_json::from_slice(&body).unwrap();
-        
+
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].id, created_event.id);
     }
