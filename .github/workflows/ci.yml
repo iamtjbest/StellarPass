@@ -35,12 +35,6 @@ jobs:
           toolchain: 1.97.1
           components: rustfmt
 
-      - name: Check Rust versions
-        run: |
-          rustc --version
-          rustfmt --version
-          cargo --version
-
       - name: Run Tests
         working-directory: apps/backend
         run: cargo test
