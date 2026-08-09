@@ -1,0 +1,31 @@
+version: '3.9'
+
+# Development override - only starts infrastructure services
+# Run backend and frontend locally with npm run dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stellarpass_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stellarpass
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: stellarpass_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: stellarpass_redis_dev
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_dev_data:/data
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:

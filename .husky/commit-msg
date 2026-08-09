@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Enforce conventional commit messages
+# Format: type(scope): description
+# Types: feat, fix, docs, style, refactor, perf, test, chore, ci, build
+npx --no -- commitlint --edit "$1"

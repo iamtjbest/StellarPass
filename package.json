@@ -1,0 +1,55 @@
+{
+  "name": "stellarpass",
+  "version": "0.1.0",
+  "description": "Open-source event ticketing platform powered by the Stellar blockchain",
+  "private": true,
+  "workspaces": [
+    "apps/frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd apps/backend && cargo run",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "build": "cd apps/backend && cargo build --release && cd ../.. && npm run build --workspace=apps/frontend",
+    "test": "cd apps/backend && cargo test && cd ../.. && npm run test --workspace=apps/frontend",
+    "lint": "cd apps/backend && cargo clippy && cd ../.. && npm run lint --workspace=apps/frontend",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "stellar",
+    "blockchain",
+    "ticketing",
+    "events",
+    "web3",
+    "open-source"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/stellarpass"
+  },
+  "homepage": "https://github.com/your-org/stellarpass#readme",
+  "bugs": {
+    "url": "https://github.com/your-org/stellarpass/issues"
+  }
+}

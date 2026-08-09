@@ -1,0 +1,31 @@
+[package]
+name = "stellarpass-ticketing"
+version = "0.1.0"
+edition = "2021"
+description = "Soroban smart contract for StellarPass ticketing"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+testutils = ["soroban-sdk/testutils"]
+
+[dependencies]
+soroban-sdk = "=22.0.11"
+
+[dev-dependencies]
+soroban-sdk = { version = "=22.0.11", features = ["testutils"] }
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true

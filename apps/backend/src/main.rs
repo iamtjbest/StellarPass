@@ -1,0 +1,183 @@
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tower_http::cors::{Any, CorsLayer};
+use uuid::Uuid;
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct EventMetadata {
+    pub id: String,
+    pub name: String,
+    pub date: String,
+    pub venue: String,
+    pub description: String,
+    pub organizer_address: String,
+    pub blockchain_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateEventRequest {
+    pub name: String,
+    pub date: String,
+    pub venue: String,
+    pub description: String,
+    pub organizer_address: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateEventRequest {
+    pub blockchain_id: String,
+}
+
+type AppState = Arc<RwLock<HashMap<String, EventMetadata>>>;
+
+#[tokio::main]
+async fn main() {
+    let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
+    let app = Router::new()
+        .route("/api/events", get(list_events).post(create_event))
+        .route("/api/events/:id", get(get_event).patch(update_event))
+        .with_state(state)
+        .layer(cors);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
+    println!("Backend server listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn list_events(State(state): State<AppState>) -> impl IntoResponse {
+    let map = state.read().await;
+    let events: Vec<EventMetadata> = map.values().cloned().collect();
+    Json(events)
+}
+
+async fn create_event(
+    State(state): State<AppState>,
+    Json(payload): Json<CreateEventRequest>,
+) -> impl IntoResponse {
+    let mut map = state.write().await;
+    
+    // We use a UUID for off-chain metadata to keep it decoupled. 
+    // The frontend will save this UUID into the Soroban contract event string.
+    let id = Uuid::new_v4().to_string();
+    
+    let event = EventMetadata {
+        id: id.clone(),
+        name: payload.name,
+        date: payload.date,
+        venue: payload.venue,
+        description: payload.description,
+        organizer_address: payload.organizer_address,
+        blockchain_id: None,
+    };
+    
+    map.insert(id, event.clone());
+    
+    (StatusCode::CREATED, Json(event))
+}
+
+async fn get_event(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let map = state.read().await;
+    match map.get(&id) {
+        Some(event) => (StatusCode::OK, Json(event.clone())).into_response(),
+        None => (StatusCode::NOT_FOUND, "Event not found").into_response(),
+    }
+}
+
+async fn update_event(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(payload): Json<UpdateEventRequest>,
+) -> impl IntoResponse {
+    let mut map = state.write().await;
+    if let Some(event) = map.get_mut(&id) {
+        event.blockchain_id = Some(payload.blockchain_id);
+        (StatusCode::OK, Json(event.clone())).into_response()
+    } else {
+        (StatusCode::NOT_FOUND, "Event not found").into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+    };
+    use tower::ServiceExt;
+    use http_body_util::BodyExt;
+
+    #[tokio::test]
+    async fn test_create_and_list_events() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+        
+        let app = Router::new()
+            .route("/api/events", get(list_events).post(create_event))
+            .route("/api/events/:id", get(get_event))
+            .with_state(state.clone());
+
+        let payload = CreateEventRequest {
+            name: "Test Event".into(),
+            date: "2026-08-08".into(),
+            venue: "Test Venue".into(),
+            description: "Test Desc".into(),
+            organizer_address: "GABC...".into(),
+        };
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/events")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let created_event: EventMetadata = serde_json::from_slice(&body).unwrap();
+        assert_eq!(created_event.name, "Test Event");
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/api/events")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let events: Vec<EventMetadata> = serde_json::from_slice(&body).unwrap();
+        
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].id, created_event.id);
+    }
+}
