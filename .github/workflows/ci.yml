@@ -33,6 +33,7 @@ jobs:
         uses: dtolnay/rust-toolchain@1.97.1
         with:
           toolchain: 1.97.1
+          components: rustfmt
 
       - name: Check Rust versions
         run: |
