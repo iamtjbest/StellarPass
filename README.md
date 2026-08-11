@@ -1,66 +1,303 @@
 # StellarPass
 
-StellarPass is an open-source, blockchain-based digital ticketing MVP prototype powered by the Stellar network and Soroban smart contracts. It guarantees cryptographic ownership of tickets, prevents fraud, double-entry, and ensures unauthorized ticket issuance is mathematically impossible.
+StellarPass is an open-source, blockchain-based digital ticketing MVP prototype powered by the Stellar network and Soroban smart contracts. It provides cryptographic ownership of tickets, prevents duplicate ticket issuance, and enables secure ticket verification and on-chain check-in.
 
 **Note:** This is currently an MVP prototype running on the **Stellar Soroban Testnet**. It is designed for demonstration and open-source contribution, not yet for production use.
 
 ## Problem Being Solved
 
 Traditional digital ticketing systems suffer from major flaws:
-- **Scalping & Counterfeiting**: Tickets can be easily duplicated as screenshots or PDFs.
-- **Double Entry**: Malicious actors can sell the same ticket barcode to multiple people.
-- **Lack of Ownership**: Attendees don't truly own their tickets; they just rent access from centralized platforms.
+
+- **Scalping & Counterfeiting:** Tickets can be duplicated as screenshots or PDFs.
+- **Double Entry:** The same ticket can potentially be presented to multiple people.
+- **Lack of Verifiable Ownership:** Attendees rely on centralized platforms to prove ticket ownership.
+- **Limited Transparency:** Ticket validity and check-in status are usually controlled by a centralized database.
 
 ## Why Blockchain & Soroban?
 
-By utilizing the Stellar blockchain, StellarPass treats tickets as unique, non-fungible digital assets. The Soroban smart contract is the **authoritative source of truth**. 
-- It prevents duplicate ticket IDs.
-- It guarantees that only the cryptographically verified event organizer can issue tickets or check attendees in.
-- It allows verification to happen transparently on a public ledger.
+StellarPass uses the Stellar network and Soroban smart contracts to make the blockchain the authoritative source of truth for security-critical ticket information.
+
+The Soroban contract:
+
+- Prevents duplicate ticket IDs.
+- Records ticket ownership on-chain.
+- Restricts ticket issuance to authorized event organizers.
+- Allows ticket validity to be verified against the blockchain.
+- Prevents a checked-in ticket from being checked in again.
+- Provides a transparent record of ticket state.
+
+The frontend and backend handle user-facing functionality and off-chain metadata, while the Soroban contract maintains the authoritative ticket state.
 
 ## Current MVP Capabilities
 
-- **Event Management**: Create events and store bulky metadata off-chain, while securing the core event identity on-chain.
-- **Ticket Issuance**: Automatically issue tickets directly to a recipient's wallet address.
-- **Ticket Verification**: Generate QR codes from tickets and verify them via a dedicated scanner interface.
-- **On-Chain Check-In**: Authorized organizers can perform cryptographically secure on-chain check-ins, changing the ticket state to prevent double-entry.
+- **Event Management:** Create events and store event metadata off-chain while registering the event identity on-chain.
+- **Ticket Issuance:** Issue unique tickets directly to a recipient's Stellar wallet address.
+- **Ticket Verification:** Generate QR codes from tickets and verify them through a dedicated scanner interface.
+- **On-Chain Check-In:** Authorized organizers can check tickets in through an on-chain transaction.
+- **Ticket Ownership:** Ticket ownership is recorded and verified through the Soroban contract.
+- **Duplicate Prevention:** The contract prevents duplicate ticket issuance and prevents already checked-in tickets from being reused.
 
 ## Architecture
 
-StellarPass separates concerns into two domains:
-- **On-Chain (Authoritative)**: A Soroban smart contract (Rust) manages Event creation, Ticket issuance, Ownership, and Check-in state.
-- **Off-Chain (Metadata)**: A Rust (Axum) backend service indexes heavy metadata like event titles, dates, and descriptions.
-- **Frontend**: A Next.js (React) application serves as the UI, communicating with the backend and integrating with the Freighter wallet for Soroban transactions.
+StellarPass uses a hybrid architecture that separates authoritative on-chain ticket state from off-chain event metadata.
+
+```mermaid
+flowchart TD
+    User[User / Organizer]
+    Frontend[Next.js Frontend]
+    Backend[Rust Axum Backend]
+    Contract[Soroban Ticketing Contract]
+    Stellar[Stellar Testnet]
+
+    User --> Frontend
+    Frontend --> Backend
+    Frontend --> Contract
+    Backend --> Frontend
+    Contract --> Stellar
+```
+
+### Components
+
+- **Frontend:** A Next.js application that provides the user interface, ticket pages, QR code generation, event management, and wallet interactions.
+
+- **Backend:** A Rust Axum service responsible for storing and serving off-chain event metadata and providing API endpoints.
+
+- **Soroban Contract:** The authoritative source of truth for security-critical event and ticket state, including ticket issuance, ownership, verification, and check-in.
+
+- **Stellar Testnet:** Hosts the deployed Soroban smart contract and provides the blockchain infrastructure for on-chain operations.
+
+The backend stores event metadata separately from the blockchain, while the Soroban contract maintains the security-critical ticket state.
 
 See the [Architecture Document](docs/ARCHITECTURE.md) for more details.
 
+## Project Structure
+
+```text
+StellarPass/
+├── apps/
+│   ├── backend/              # Rust Axum backend
+│   └── frontend/             # Next.js frontend
+│
+├── contracts/
+│   └── ticketing/            # Soroban ticketing smart contract
+│
+├── docs/
+│   ├── ARCHITECTURE.md       # System architecture
+│   ├── DEVELOPMENT.md        # Development setup
+│   └── TICKETING_FLOW.md     # Ticket lifecycle
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml            # GitHub Actions CI
+│
+├── CONTRIBUTING.md
+├── LICENSE
+├── package.json
+└── README.md
+```
+
 ## Local Setup & Development
 
-See the [Development Setup Guide](docs/DEVELOPMENT.md) for instructions on setting up Node.js, Rust, the backend, the frontend, and deploying the Soroban contract.
+StellarPass consists of three main components:
+
+1. **Soroban smart contract**
+2. **Rust Axum backend**
+3. **Next.js frontend**
+
+See the [Development Setup Guide](docs/DEVELOPMENT.md) for detailed instructions on installing the required tools, configuring the project, running the applications, and deploying the Soroban contract.
+
+### Requirements
+
+You will need:
+
+- Node.js
+- npm
+- Rust and Cargo
+- Soroban CLI
+- A Stellar-compatible wallet such as Freighter
+- Git
 
 ### Environment Variables
-The frontend relies on a `.env` file (copied from `.env.example`) to specify the `NEXT_PUBLIC_STELLAR_CONTRACT_ID`.
 
-### Freighter Wallet Requirement
-To use StellarPass, you must install the [Freighter browser extension](https://www.freighter.app/) and configure it for the Stellar Testnet. You will also need Testnet XLM to pay for transaction fees.
+The frontend relies on environment variables defined in `.env`.
+
+Copy the example environment file:
+
+```bash
+cp apps/frontend/.env.example apps/frontend/.env.local
+```
+
+Then configure the required Stellar contract information, including:
+
+```text
+NEXT_PUBLIC_STELLAR_CONTRACT_ID=<your-contract-id>
+```
+
+Refer to the development documentation for the complete configuration.
+
+### Install Dependencies
+
+From the repository root:
+
+```bash
+npm ci --include=dev
+```
+
+### Run the Frontend
+
+```bash
+npm run dev --workspace=apps/frontend
+```
+
+The frontend can then be accessed through the local development server.
+
+### Run the Backend
+
+From the repository root:
+
+```bash
+cargo run --manifest-path apps/backend/Cargo.toml
+```
+
+The backend runs on port `3001` by default.
+
+### Run Tests
+
+Backend tests:
+
+```bash
+cargo test --manifest-path apps/backend/Cargo.toml
+```
+
+Soroban contract tests:
+
+```bash
+cargo test --manifest-path contracts/ticketing/Cargo.toml
+```
+
+Check Rust formatting:
+
+```bash
+cargo fmt --manifest-path apps/backend/Cargo.toml -- --check
+```
+
+Build the frontend:
+
+```bash
+npm run build --workspace=apps/frontend
+```
+
+## Freighter Wallet Requirement
+
+StellarPass uses the Freighter wallet for Stellar transactions.
+
+To interact with the application:
+
+1. Install the Freighter browser extension.
+2. Configure Freighter for the Stellar Testnet.
+3. Fund the wallet with Testnet XLM.
+4. Connect the wallet to StellarPass.
+
+The wallet is used to sign transactions that interact with the Soroban contract.
 
 ## How the Ticket Lifecycle Works
 
-The ticketing flow is a hybrid process:
-1. **Event Creation**: Metadata is saved off-chain. An ID is registered on-chain.
-2. **Issuance**: A ticket is issued on-chain to a user's wallet.
-3. **Verification**: A QR code is scanned, and the frontend queries the Soroban contract for validity.
-4. **Check-In**: The organizer signs an on-chain transaction to permanently consume the ticket.
+The ticketing flow is a hybrid process involving both the backend and the Soroban contract.
 
-See the [Ticketing Flow Document](docs/TICKETING_FLOW.md) for a deep dive.
+### 1. Event Creation
+
+Event metadata such as the name, date, venue, and description is stored through the backend.
+
+An event identity is also registered on the Soroban contract.
+
+### 2. Ticket Issuance
+
+An authorized organizer issues a ticket to the recipient's Stellar wallet address.
+
+The Soroban contract records the ticket and its owner on-chain.
+
+### 3. Ticket Generation
+
+The frontend generates a QR code containing the information required to identify the ticket.
+
+### 4. Ticket Verification
+
+At the event, the attendee presents the QR code.
+
+The verifier scans the QR code and the frontend queries the Soroban contract to determine whether the ticket exists and is valid.
+
+### 5. Check-In
+
+An authorized organizer performs the check-in transaction.
+
+The ticket state is updated on-chain so that the same ticket cannot be checked in again.
+
+See the [Ticketing Flow Document](docs/TICKETING_FLOW.md) for a deeper explanation.
+
+## Security Model
+
+The Soroban contract is the authoritative source for security-critical ticket state.
+
+The backend should not be treated as the source of truth for:
+
+- Ticket ownership
+- Ticket validity
+- Ticket issuance authorization
+- Check-in status
+
+Instead, these states are verified against the blockchain.
+
+The backend is primarily responsible for off-chain metadata and supporting application functionality.
+
+## Testing & Continuous Integration
+
+StellarPass uses GitHub Actions to automatically validate contributions.
+
+The CI pipeline checks:
+
+- Soroban contract tests
+- Backend tests
+- Rust formatting
+- Frontend installation
+- Frontend production build
+
+Contributors should ensure these checks pass before opening a pull request.
 
 ## Roadmap & Contributions
 
-We are currently preparing for a major open-source contribution phase! We need help with UI improvements, persistent backend storage (PostgreSQL), and advanced smart contract features like ticket transfers and batch issuance.
+StellarPass is currently preparing for a broader open-source contribution phase.
 
-- See [ROADMAP.md](docs/ROADMAP.md) for a list of planned features.
-- See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on how to submit code.
+Potential future improvements include:
+
+- Persistent backend storage using PostgreSQL
+- Ticket transfers
+- Batch ticket issuance
+- Improved event management
+- Enhanced ticket verification
+- UI and accessibility improvements
+- Additional automated tests
+- Production-ready deployment infrastructure
+
+See [ROADMAP.md](docs/ROADMAP.md) for planned improvements.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## Contributing
+
+Contributions are welcome.
+
+To contribute:
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Make your changes.
+4. Run the relevant tests and formatting checks.
+5. Commit your changes.
+6. Push your branch.
+7. Open a pull request.
+
+For more information, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for more information.
