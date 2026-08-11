@@ -51,6 +51,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/events", get(list_events).post(create_event))
         .route("/api/events/:id", get(get_event).patch(update_event))
+        .route("/api/health", get(health_check))
         .with_state(state)
         .layer(cors);
 
@@ -60,6 +61,12 @@ async fn main() {
         listener.local_addr().unwrap()
     );
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn health_check() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "status": "ok"
+    }))
 }
 
 async fn list_events(State(state): State<AppState>) -> impl IntoResponse {
@@ -179,5 +186,29 @@ mod tests {
 
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].id, created_event.id);
+    }
+
+    #[tokio::test]
+    async fn test_health_check() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+        let app = Router::new()
+            .route("/api/health", get(health_check))
+            .with_state(state);
+
+        let request = Request::builder()
+            .uri("/api/health")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["status"], "ok");
     }
 }
