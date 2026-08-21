@@ -211,4 +211,61 @@ mod tests {
 
         assert_eq!(json["status"], "ok");
     }
+
+    #[tokio::test]
+    async fn test_get_event_by_id() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+        let app = Router::new()
+            .route("/api/events", get(list_events).post(create_event))
+            .route("/api/events/:id", get(get_event))
+            .with_state(state.clone());
+
+        let payload = CreateEventRequest {
+            name: "Single Event Test".into(),
+            date: "2026-08-08".into(),
+            venue: "Test Venue".into(),
+            description: "Test Description".into(),
+            organizer_address: "GABC...".into(),
+        };
+
+        // Create an event first
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/events")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let created_event: EventMetadata = serde_json::from_slice(&body).unwrap();
+
+        // Fetch the event using its ID
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri(format!("/api/events/{}", created_event.id))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let fetched_event: EventMetadata = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(fetched_event.id, created_event.id);
+        assert_eq!(fetched_event.name, "Single Event Test");
+    }
 }
