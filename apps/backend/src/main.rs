@@ -290,4 +290,68 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
+
+    #[tokio::test]
+    async fn test_update_event() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+        let app = Router::new()
+            .route("/api/events", get(list_events).post(create_event))
+            .route("/api/events/:id", get(get_event).patch(update_event))
+            .with_state(state.clone());
+
+        let payload = CreateEventRequest {
+            name: "Update Test Event".into(),
+            date: "2026-08-08".into(),
+            venue: "Test Venue".into(),
+            description: "Test Description".into(),
+            organizer_address: "GABC...".into(),
+        };
+
+        // Create an event first
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/events")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_string(&payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let created_event: EventMetadata = serde_json::from_slice(&body).unwrap();
+
+        // Update the event with its blockchain ID
+        let update_payload = UpdateEventRequest {
+            blockchain_id: "test-blockchain-id".into(),
+        };
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(format!("/api/events/{}", created_event.id))
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_string(&update_payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let updated_event: EventMetadata = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(
+            updated_event.blockchain_id,
+            Some("test-blockchain-id".into())
+        );
+    }
 }
