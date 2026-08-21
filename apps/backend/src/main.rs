@@ -268,4 +268,26 @@ mod tests {
         assert_eq!(fetched_event.id, created_event.id);
         assert_eq!(fetched_event.name, "Single Event Test");
     }
+
+    #[tokio::test]
+    async fn test_get_event_not_found() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+        let app = Router::new()
+            .route("/api/events/:id", get(get_event))
+            .with_state(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/api/events/non-existent-id")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
 }
