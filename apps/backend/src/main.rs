@@ -166,7 +166,14 @@ mod tests {
 
         let body = response.into_body().collect().await.unwrap().to_bytes();
         let created_event: EventMetadata = serde_json::from_slice(&body).unwrap();
+
         assert_eq!(created_event.name, "Test Event");
+        assert_eq!(created_event.date, "2026-08-08");
+        assert_eq!(created_event.venue, "Test Venue");
+        assert_eq!(created_event.description, "Test Desc");
+        assert_eq!(created_event.organizer_address, "GABC...");
+        assert!(created_event.blockchain_id.is_none());
+        assert!(!created_event.id.is_empty());
 
         let response = app
             .oneshot(
