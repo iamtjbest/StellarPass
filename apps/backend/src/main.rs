@@ -354,4 +354,31 @@ mod tests {
             Some("test-blockchain-id".into())
         );
     }
+
+    #[tokio::test]
+    async fn test_update_event_not_found() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+        let app = Router::new()
+            .route("/api/events/:id", get(get_event).patch(update_event))
+            .with_state(state);
+
+        let update_payload = UpdateEventRequest {
+            blockchain_id: "test-blockchain-id".into(),
+        };
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/events/non-existent-id")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_string(&update_payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
 }
