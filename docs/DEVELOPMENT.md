@@ -5,6 +5,7 @@ This guide will help you set up the StellarPass MVP on your local machine for de
 ## Prerequisites
 
 Ensure you have the following installed:
+
 - **Node.js**: >= 18.0.0
 - **Rust / Cargo**: >= 1.88.0
 - **Stellar CLI**: For deploying and interacting with Soroban contracts.
@@ -23,10 +24,13 @@ npm install
 ## 2. Environment Configuration
 
 ### Frontend
+
 In `apps/frontend/`, copy the example environment file:
+
 ```bash
 cp .env.example .env
 ```
+
 Ensure `NEXT_PUBLIC_STELLAR_CONTRACT_ID` is set to the deployed Soroban contract ID. (If you deploy your own contract in Step 5, update this value).
 
 ## 3. Starting the Backend
@@ -37,7 +41,98 @@ The backend is a lightweight Rust/Axum service that stores metadata in memory.
 cd apps/backend
 cargo run
 ```
+
 The backend will start on `http://localhost:3001`.
+
+### Backend API Reference
+
+The backend exposes a small REST API for managing off-chain event metadata.
+
+#### Health Check
+
+Check whether the backend is running:
+
+```http
+GET /api/health
+```
+
+Example response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+#### List Events
+
+Retrieve all events currently stored by the backend:
+
+```http
+GET /api/events
+```
+
+#### Create an Event
+
+Create a new event:
+
+```http
+POST /api/events
+```
+
+Request body:
+
+```json
+{
+  "name": "Example Event",
+  "date": "2026-08-08",
+  "venue": "Example Venue",
+  "description": "Example event description",
+  "organizer_address": "GABC..."
+}
+```
+
+The backend generates a unique event ID and initially sets `blockchain_id` to null.
+
+#### Get an Event
+
+Retrieve a specific event using its backend-generated ID:
+
+```http
+GET /api/events/:id
+```
+
+Example:
+
+```http
+GET /api/events/123e4567-e89b-12d3-a456-426614174000
+```
+
+If the event does not exist, the API returns:
+
+`404 Not Found`
+
+#### Update an Event
+
+Associate an existing event with its on-chain blockchain ID:
+
+```http
+PATCH /api/events/:id
+```
+
+Request body:
+
+```json
+{
+  "blockchain_id": "example-blockchain-id"
+}
+```
+
+If the event does not exist, the API returns:
+
+`404 Not Found`
+
+Note: Event metadata is currently stored in memory by the backend. Restarting the backend clears the stored events.
 
 ## 4. Starting the Frontend
 
@@ -47,6 +142,7 @@ With the backend running, start the Next.js frontend:
 cd apps/frontend
 npm run dev
 ```
+
 The frontend will start on `http://localhost:3000`.
 
 ## 5. Soroban Smart Contract Development
@@ -54,24 +150,29 @@ The frontend will start on `http://localhost:3000`.
 If you want to modify or deploy your own version of the smart contract to the Stellar Testnet:
 
 ### Build the Contract
+
 ```bash
 cd contracts/ticketing
 cargo build --target wasm32-unknown-unknown --release
 ```
 
 ### Run Contract Tests
+
 ```bash
 cargo test
 ```
 
 ### Deploy to Stellar Testnet
+
 First, generate a keypair and fund it on the Testnet:
+
 ```bash
 stellar keys generate organizer
 stellar keys fund organizer --network testnet
 ```
 
 Then, deploy the compiled Wasm:
+
 ```bash
 stellar contract deploy \
   --wasm target/wasm32-unknown-unknown/release/stellarpass_ticketing.wasm \
