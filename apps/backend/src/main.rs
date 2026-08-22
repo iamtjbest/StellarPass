@@ -353,6 +353,11 @@ mod tests {
             updated_event.blockchain_id,
             Some("test-blockchain-id".into())
         );
+        assert_eq!(updated_event.name, "Update Test Event");
+        assert_eq!(updated_event.date, "2026-08-08");
+        assert_eq!(updated_event.venue, "Test Venue");
+        assert_eq!(updated_event.description, "Test Description");
+        assert_eq!(updated_event.organizer_address, "GABC...");
     }
 
     #[tokio::test]
