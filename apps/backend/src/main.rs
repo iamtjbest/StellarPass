@@ -416,4 +416,27 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+
+    #[tokio::test]
+    async fn test_create_event_invalid_payload() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+        let app = Router::new()
+            .route("/api/events", get(list_events).post(create_event))
+            .with_state(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/events")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"name":"Incomplete Event"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
 }
