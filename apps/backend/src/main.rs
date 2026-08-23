@@ -296,6 +296,9 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        assert_eq!(body, "Event not found");
     }
 
     #[tokio::test]
