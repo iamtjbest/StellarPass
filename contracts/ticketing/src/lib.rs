@@ -117,8 +117,10 @@ impl TicketingContract {
 
         env.storage().persistent().set(&ticket_key, &ticket);
 
-        env.events()
-            .publish((Symbol::new(&env, "ticket_issued"), event_id, ticket_id), recipient);
+        env.events().publish(
+            (Symbol::new(&env, "ticket_issued"), event_id, ticket_id),
+            recipient,
+        );
 
         Ok(())
     }
@@ -167,6 +169,10 @@ impl TicketingContract {
             return Err(Error::Unauthorized);
         }
 
+        if !event.active {
+            return Err(Error::EventNotActive);
+        }
+
         if ticket.checked_in {
             return Err(Error::TicketAlreadyCheckedIn);
         }
@@ -174,8 +180,14 @@ impl TicketingContract {
         ticket.checked_in = true;
         env.storage().persistent().set(&ticket_key, &ticket);
 
-        env.events()
-            .publish((Symbol::new(&env, "ticket_checked_in"), ticket.event_id, ticket_id), operator);
+        env.events().publish(
+            (
+                Symbol::new(&env, "ticket_checked_in"),
+                ticket.event_id,
+                ticket_id,
+            ),
+            operator,
+        );
 
         Ok(())
     }
