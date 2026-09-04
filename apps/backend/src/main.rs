@@ -442,4 +442,112 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+
+    #[tokio::test]
+    async fn test_list_events_empty() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+        let app = Router::new()
+            .route("/api/events", get(list_events))
+            .with_state(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/api/events")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let events: Vec<EventMetadata> = serde_json::from_slice(&body).unwrap();
+
+        assert!(events.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_list_multiple_events() {
+        let state: AppState = Arc::new(RwLock::new(HashMap::new()));
+
+        let app = Router::new()
+            .route("/api/events", get(list_events).post(create_event))
+            .with_state(state.clone());
+
+        let payload_one = CreateEventRequest {
+            name: "Event One".into(),
+            date: "2026-08-08".into(),
+            venue: "Venue One".into(),
+            description: "Description One".into(),
+            organizer_address: "GABC...".into(),
+        };
+
+        let payload_two = CreateEventRequest {
+            name: "Event Two".into(),
+            date: "2026-08-09".into(),
+            venue: "Venue Two".into(),
+            description: "Description Two".into(),
+            organizer_address: "GDEF...".into(),
+        };
+
+        // Create first event
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/events")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_string(&payload_one).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        // Create second event
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/events")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_string(&payload_two).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        // List all events
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/api/events")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let events: Vec<EventMetadata> = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(events.len(), 2);
+
+        let names: Vec<&str> = events.iter().map(|event| event.name.as_str()).collect();
+
+        assert!(names.contains(&"Event One"));
+        assert!(names.contains(&"Event Two"));
+    }
 }
