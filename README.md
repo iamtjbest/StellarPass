@@ -2,9 +2,27 @@
 
 StellarPass is an open-source, blockchain-based digital ticketing MVP prototype powered by the Stellar network and Soroban smart contracts. It provides cryptographic ownership of tickets, prevents duplicate ticket issuance, and enables secure ticket verification and on-chain check-in.
 
-**Note:** This is currently an MVP prototype running on the **Stellar Soroban Testnet**. It is designed for demonstration and open-source contribution, not yet for production use.
+**Note:** This is an MVP prototype deployed on the **Stellar Soroban Testnet**. It is designed for demonstration and open-source contribution.
 
-## Problem Being Solved
+## Live Testnet Deployment
+
+The StellarPass smart contract is actively deployed on the Stellar Testnet.
+
+- **Network:** Stellar Soroban Testnet
+- **Deployed Contract ID:** `CDA7WVAH5PSQC3G7O5KMLB63LOYTZAJZ3N5ZQPIMZ6YFY5RRRVL36UUC`
+- **Wallet Integration:** Requires the [Freighter](https://freighter.app/) wallet configured for Testnet.
+
+The Soroban contract acts as the strict, authoritative source of truth for all ticket and event states. The Rust backend is solely responsible for serving off-chain event metadata and providing API endpoints.
+
+### Implemented MVP Lifecycle
+
+StellarPass currently implements the following end-to-end lifecycle on Testnet:
+
+1. **Create Event:** Organizers register an event identity on-chain while saving metadata off-chain.
+2. **Issue Ticket:** Organizers mint unique tickets directly to a recipient's Stellar wallet.
+3. **Verify Ticket:** Attendees present generated QR codes, which the application verifies securely against the Soroban contract.
+4. **Check-In:** Organizers perform an on-chain transaction to mark the ticket as checked in, preventing double-entry.
+5. **Deactivate Event:** Organizers can deactivate an event. Once inactive, the Soroban contract explicitly rejects any further ticket issuance or check-ins for that event.
 
 Traditional digital ticketing systems suffer from major flaws:
 
@@ -232,7 +250,11 @@ An authorized organizer performs the check-in transaction.
 
 The ticket state is updated on-chain so that the same ticket cannot be checked in again.
 
-See the [Ticketing Flow Document](docs/TICKETING_FLOW.md) for a deeper explanation.
+### 6. Event Deactivation
+
+An organizer can deactivate the event when it concludes. The Soroban contract will subsequently reject any new ticket issuance or check-ins for this event.
+
+See the [Ticketing Flow Document](docs/TICKETING_FLOW.md) for a deeper explanation and [TESTNET_DEMO.md](docs/TESTNET_DEMO.md) for verifiable on-chain demonstration transactions.
 
 ## Security Model
 
@@ -263,22 +285,18 @@ The CI pipeline checks:
 
 Contributors should ensure these checks pass before opening a pull request.
 
-## Roadmap & Contributions
+## Current MVP Limitations / Future Work
 
-StellarPass is currently preparing for a broader open-source contribution phase.
+StellarPass is currently a functional Testnet MVP. We are actively inviting open-source contributions to mature the system for production.
 
-Potential future improvements include:
+Current limitations and planned future work include:
 
-- Persistent backend storage using PostgreSQL
-- Ticket transfers
-- Batch ticket issuance
-- Improved event management
-- Enhanced ticket verification
-- UI and accessibility improvements
-- Additional automated tests
-- Production-ready deployment infrastructure
+- Transitioning from in-memory backend storage to persistent PostgreSQL.
+- Implementing trustless background indexing of Soroban events to link metadata.
+- Support for secure on-chain ticket transfers.
+- Role-Based Access Control (RBAC) to delegate scanner capabilities.
 
-See [ROADMAP.md](docs/ROADMAP.md) for planned improvements.
+See [ROADMAP.md](docs/ROADMAP.md) for the complete list of planned improvements.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
