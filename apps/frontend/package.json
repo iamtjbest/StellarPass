@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "jest"
   },
   "dependencies": {
     "@stellar/freighter-api": "^6.0.1",
@@ -22,11 +23,16 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "eslint": "8",
     "eslint-config-next": "14",
+    "jest": "^30.5.2",
+    "jest-environment-jsdom": "^30.5.2",
     "tsx": "^4.23.11",
     "typescript": "^5.0.0"
   }
