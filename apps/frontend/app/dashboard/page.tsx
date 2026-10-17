@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useFreighter } from '../../hooks/useFreighter';
 import { createEvent, issueTicket, deactivateEvent } from '../../lib/stellar/contract';
+import { fetchBackend } from '../../lib/api';
 
 export default function Dashboard() {
   const { pubKey, connect } = useFreighter();
@@ -40,7 +41,7 @@ export default function Dashboard() {
       setStatus('Saving metadata...');
       setTxHash('');
 
-      const res = await fetch('http://localhost:3001/api/events', {
+      const res = await fetchBackend('/api/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +72,7 @@ export default function Dashboard() {
       );
 
       // Save blockchain ID in backend
-      await fetch(`http://localhost:3001/api/events/${metadataRef}`, {
+      await fetchBackend(`/api/events/${metadataRef}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
