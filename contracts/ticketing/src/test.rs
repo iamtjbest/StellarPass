@@ -38,6 +38,31 @@ fn test_create_event_and_duplicate() {
 }
 
 #[test]
+fn test_get_event() {
+    let (env, client, organizer, _, _) = setup_test();
+    let metadata_ref = String::from_str(&env, "ipfs://event123");
+    let event_id = 1;
+
+    client.create_event(&organizer, &event_id, &metadata_ref);
+
+    let event = client.get_event(&event_id);
+    assert_eq!(event.id, event_id);
+    assert_eq!(event.organizer, organizer);
+    assert_eq!(event.metadata_ref, metadata_ref);
+    assert_eq!(event.created_at, env.ledger().timestamp());
+    assert_eq!(event.active, true);
+}
+
+#[test]
+fn test_get_nonexistent_event() {
+    let (_, client, _, _, _) = setup_test();
+    let event_id = 999; // Nonexistent
+
+    let res = client.try_get_event(&event_id);
+    assert_eq!(res.unwrap_err().unwrap(), Error::EventNotFound);
+}
+
+#[test]
 fn test_issue_ticket_and_unauthorized() {
     let (env, client, organizer, malicious_user, ticket_buyer) = setup_test();
     let metadata_ref = String::from_str(&env, "ipfs://event123");

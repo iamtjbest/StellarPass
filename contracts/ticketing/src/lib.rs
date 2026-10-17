@@ -125,6 +125,13 @@ impl TicketingContract {
         Ok(())
     }
 
+    pub fn get_event(env: Env, event_id: u64) -> Result<Event, Error> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Event(event_id))
+            .ok_or(Error::EventNotFound)
+    }
+
     pub fn get_ticket(env: Env, ticket_id: u64) -> Result<Ticket, Error> {
         env.storage()
             .persistent()
