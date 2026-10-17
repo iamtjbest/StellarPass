@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { fetchBackend } from "../lib/api";
 
 interface EventMetadata {
   id: string;
@@ -17,7 +18,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/events")
+    fetchBackend("/api/events")
       .then((res) => res.json())
       .then((data) => {
         setEvents(data);

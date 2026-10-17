@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useFreighter } from "../../../hooks/useFreighter";
 import { issueTicket } from "../../../lib/stellar/contract";
+import { fetchBackend } from "../../../lib/api";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function EventDetails({ params }: { params: { id: string } }) {
@@ -17,7 +18,7 @@ export default function EventDetails({ params }: { params: { id: string } }) {
   const [txHash, setTxHash] = useState("");
 
   useEffect(() => {
-    fetch(`http://localhost:3001/api/events/${id}`)
+    fetchBackend(`/api/events/${id}`)
       .then(res => res.json())
       .then(data => {
         setEvent(data);
